@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PRIMEIRO CRUD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+                <li class="flash-message {{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <h1>Adicionar nova tarefa</h1>
+    <form action="/create_task" method="POST">
+        <input type="text" name="description" required placeholder="Nova tarefa...">
+        <input type="submit" value="Criar tarefa">
+    </form>
+
+    <h1>Lista de Tarefas</h1>
+    <ul>
+        {% for task in tasks %}
+        <li>
+            <span>{{ task.description }}</span>
+            <small>Adicionado em: {{ task.local_created_at.strftime('%d/%m/%Y %H:%M:%S') }}</small>
+            <form action="/update_task/{{ task.id }}" method="POST" style="display:inline;">
+                <input type="text" name="description" value="{{ task.description }}" required placeholder="Atualizar...">
+                <button type="submit" class="update">ATUALIZAR</button>
+            </form>
+            <form action="/delete_task/{{ task.id }}" method="POST" style="display:inline;">
+                <button type="submit" class="delete">EXCLUIR</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
