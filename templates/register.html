@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card p-4 mt-5 shadow-sm">
+            <h2 class="card-title text-center mb-4">Criar Nova Conta</h2>
+            <form method="POST" action="{{ url_for('register') }}">
+                {{ form.hidden_tag() }} {# ESSENCIAL para segurança do formulário (CSRF token) #}
+
+                <div class="mb-3">
+                    {{ form.username.label(class="form-label") }}
+                    {{ form.username(class="form-control", placeholder="Digite seu nome de usuário") }}
+                    {% if form.username.errors %}
+                        <div class="text-danger">
+                            {% for error in form.username.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.email.label(class="form-label") }}
+                    {{ form.email(class="form-control", placeholder="Digite seu email") }}
+                    {% if form.email.errors %}
+                        <div class="text-danger">
+                            {% for error in form.email.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.password.label(class="form-label") }}
+                    {{ form.password(class="form-control", placeholder="Digite sua senha") }}
+                    {% if form.password.errors %}
+                        <div class="text-danger">
+                            {% for error in form.password.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.confirm.label(class="form-label") }}
+                    {{ form.confirm(class="form-control", placeholder="Confirme sua senha") }}
+                    {% if form.confirm.errors %}
+                        <div class="text-danger">
+                            {% for error in form.confirm.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-grid gap-2">
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+            <div class="text-center mt-3">
+                Já tem uma conta? <a href="{{ url_for('login') }}">Entre aqui.</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

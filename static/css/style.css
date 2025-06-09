@@ -1,17 +1,18 @@
-/* static/css/style.css */
-
+/* Estilos para o corpo da página */
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
     background-color: #f4f4f4;
 }
 
+/* Estilos para títulos h1 */
 h1 {
     color: #333;
     text-align: center;
     margin-bottom: 30px;
 }
 
+/* Estilos para formulários (geral) */
 form {
     background-color: #fff;
     padding: 20px;
@@ -21,9 +22,10 @@ form {
     margin: 0 auto 30px auto;
 }
 
-input[type="text"],
-input[type="submit"],
-button {
+/* Estilos para inputs de texto DENTRO de formulários */
+form input[type="text"],
+form input[type="email"],
+form input[type="password"] { /* Adicionado tipos de input específicos */
     width: calc(100% - 20px);
     padding: 10px;
     margin-bottom: 10px;
@@ -32,94 +34,97 @@ button {
     box-sizing: border-box;
 }
 
-input[type="submit"],
-button {
+/* Estilos para botões de submit DENTRO de formulários */
+form button[type="submit"],
+form input[type="submit"] { /* Específico para botões de formulário */
     background-color: #007bff;
     color: white;
     cursor: pointer;
     border: none;
     font-size: 16px;
     transition: background-color 0.3s ease;
+    width: 100%; /* Para preencher a largura do contêiner do formulário */
+    padding: 10px;
+    border-radius: 4px;
+    box-sizing: border-box;
 }
 
-input[type="submit"]:hover,
-button:hover {
+form button[type="submit"]:hover,
+form input[type="submit"]:hover {
     background-color: #0056b3;
 }
 
-ul {
+/* Estilos para links que são botões (se houver, como o "Registrar-se aqui" na tela de login) */
+.card-body a { /* Seletor para links dentro de card-body */
+    color: #007bff; /* Garante que os links dentro dos cartões tenham a cor padrão */
+    text-decoration: none;
+}
+
+.card-body a:hover {
+    text-decoration: underline;
+}
+
+/* Estilos para a lista de tarefas (ul) */
+ul.list-group { /* Use a classe do Bootstrap para maior especificidade */
     list-style-type: none;
     padding: 0;
-    max-width: 500px;
+    max-width: 800px; /* Ajuste se necessário para o layout das tarefas */
     margin: 0 auto;
 }
 
-li {
-    background-color: #e9e9e9;
+/* Estilos para itens da lista de tarefas (li) */
+.list-group-item { /* Use a classe do Bootstrap */
+    background-color: #f8f9fa; /* Um tom de cinza claro para os itens */
     padding: 10px;
     margin-bottom: 8px;
     border-radius: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 1px solid rgba(0,0,0,.125); /* Borda sutil */
 }
 
-li span {
+/* Estilos para o texto da descrição da tarefa */
+.list-group-item span {
     flex-grow: 1;
     margin-right: 10px;
     font-size: 1.1em;
 }
 
-li form {
-    background-color: transparent;
-    box-shadow: none;
-    padding: 0;
-    margin: 0;
-    max-width: none;
-    display: inline-block;
-}
-
-li button {
+/* Estilos para os botões de ação dentro dos itens da lista (ATUALIZAR, EXCLUIR) */
+.list-group-item button { /* Especificidade para botões DENTRO de list-group-item */
     width: auto;
     margin-left: 5px;
     padding: 8px 12px;
     font-size: 0.9em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
-button.delete {
+/* Estilos específicos para o botão de exclusão */
+.list-group-item button.btn-danger { /* Use a classe do Bootstrap para o botão de exclusão */
     background-color: #dc3545;
+    color: white;
 }
 
-button.delete:hover {
+.list-group-item button.btn-danger:hover {
     background-color: #c82333;
 }
 
-button.update {
+/* Estilos específicos para o botão de atualização */
+.list-group-item button.btn-warning { /* Use a classe do Bootstrap para o botão de atualização */
     background-color: #ffc107;
-    color: #333;
+    color: #212529; /* Cor do texto para contraste */
 }
 
-button.update:hover {
+.list-group-item button.btn-warning:hover {
     background-color: #e0a800;
 }
 
-/* Mensagens flash */
-.flash-message {
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    text-align: center;
-    font-weight: bold;
-}
-
-.flash-message.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.flash-message.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
+/* Remova ou ajuste qualquer estilo genérico para 'a' ou 'button' que não tenha um seletor mais específico. */
+/* Ex: NÃO FAÇA ISSO: */
+/* a { background-color: white; } */
+/* button { background-color: white; } */
+/* POIS ISSO AFETARIA A NAVBAR */

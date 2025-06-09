@@ -1,41 +1,48 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PRIMEIRO CRUD</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class="flash-messages">
-            {% for category, message in messages %}
-                <li class="flash-message {{ category }}">{{ message }}</li>
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4 text-center">Minhas Tarefas</h1>
+
+    <div class="card p-3 mb-4 shadow-sm">
+        <h2 class="card-title h4">Adicionar Nova Tarefa</h2>
+        <form action="{{ url_for('create_task') }}" method="POST" class="d-flex">
+            <input type="text" name="description" class="form-control me-2" placeholder="Nova tarefa..." required>
+            <button type="submit" class="btn btn-primary">Criar Tarefa</button>
+        </form>
+    </div>
+
+    <div class="card p-3 mb-4 shadow-sm">
+        <h2 class="card-title h4">Filtrar e Buscar Tarefas</h2>
+        <form action="{{ url_for('index') }}" method="GET" class="d-flex">
+            <input type="text" name="search_query" class="form-control me-2" placeholder="Buscar por descrição...">
+            <select name="status" class="form-select me-2">
+                <option value="all">Todas</option>
+                </select>
+            <button type="submit" class="btn btn-info">Aplicar</button>
+        </form>
+    </div>
+
+    <h2 class="my-4 text-center">Lista de Tarefas</h2>
+    {% if tasks %}
+        <ul class="list-group">
+            {% for task in tasks %}
+                <li class="list-group-item d-flex justify-content-between align-items-center mb-2 shadow-sm">
+                    <span class="flex-grow-1 me-3">{{ task.description }}</span>
+                    <div class="d-flex align-items-center">
+                        <form action="{{ url_for('update_task', task_id=task.id) }}" method="POST" class="d-flex me-2">
+                            <input type="text" name="description" value="{{ task.description }}" class="form-control me-2" required>
+                            <button type="submit" class="btn btn-warning btn-sm">ATUALIZAR</button>
+                        </form>
+                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST">
+                            <button type="submit" class="btn btn-danger btn-sm">EXCLUIR</button>
+                        </form>
+                    </div>
+                </li>
             {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-
-    <h1>Adicionar nova tarefa</h1>
-    <form action="/create_task" method="POST">
-        <input type="text" name="description" required placeholder="Nova tarefa...">
-        <input type="submit" value="Criar tarefa">
-    </form>
-
-    <h1>Lista de Tarefas</h1>
-    <ul>
-        {% for task in tasks %}
-        <li>
-            <span>{{ task.description }}</span>
-            <small>Adicionado em: {{ task.local_created_at.strftime('%d/%m/%Y %H:%M:%S') }}</small>
-            <form action="/update_task/{{ task.id }}" method="POST" style="display:inline;">
-                <input type="text" name="description" value="{{ task.description }}" required placeholder="Atualizar...">
-                <button type="submit" class="update">ATUALIZAR</button>
-            </form>
-            <form action="/delete_task/{{ task.id }}" method="POST" style="display:inline;">
-                <button type="submit" class="delete">EXCLUIR</button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+        </ul>
+    {% else %}
+        <p class="text-center">Nenhuma tarefa encontrada. Comece adicionando uma!</p>
+    {% endif %}
+</div>
+{% endblock %}
