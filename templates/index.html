@@ -6,20 +6,46 @@
 
     <div class="card p-3 mb-4 shadow-sm">
         <h2 class="card-title h4">Adicionar Nova Tarefa</h2>
-        <form action="{{ url_for('create_task') }}" method="POST" class="d-flex">
-            <input type="text" name="description" class="form-control me-2" placeholder="Nova tarefa..." required>
+        <form action="{{ url_for('create_task') }}" method="POST" class="d-flex flex-column flex-md-row align-items-stretch">
+            <input type="text" name="description" class="form-control me-md-2 mb-2 mb-md-0 flex-grow-1" placeholder="Nova tarefa..." required>
+            
+            <select name="priority" class="form-select me-md-2 mb-2 mb-md-0">
+                <option value="Média" selected>Média</option>
+                <option value="Alta">Alta</option>
+                <option value="Baixa">Baixa</option>
+            </select>
+            
             <button type="submit" class="btn btn-primary">Criar Tarefa</button>
         </form>
     </div>
 
     <div class="card p-3 mb-4 shadow-sm">
         <h2 class="card-title h4">Filtrar e Buscar Tarefas</h2>
-        <form action="{{ url_for('index') }}" method="GET" class="d-flex">
-            <input type="text" name="search_query" class="form-control me-2" placeholder="Buscar por descrição...">
-            <select name="status" class="form-select me-2">
-                <option value="all">Todas</option>
+        <form action="{{ url_for('index') }}" method="GET" class="d-flex flex-wrap align-items-center">
+            <div class="me-2 mb-2 flex-grow-1">
+                <input type="text" name="search_query" class="form-control" placeholder="Buscar por descrição..." value="{{ current_search_query if current_search_query else '' }}">
+            </div>
+
+            <div class="me-2 mb-2">
+                <label for="status_filter" class="form-label me-2 mb-0 d-none d-md-inline">Status:</label>
+                <select name="status_filter" id="status_filter" class="form-select">
+                    <option value="all" {% if current_filter_status == 'all' %}selected{% endif %}>Todas</option>
+                    <option value="pending" {% if current_filter_status == 'pending' %}selected{% endif %}>Pendentes</option>
+                    <option value="completed" {% if current_filter_status == 'completed' %}selected{% endif %}>Concluídas</option>
                 </select>
-            <button type="submit" class="btn btn-info">Aplicar</button>
+            </div>
+
+            <div class="me-2 mb-2">
+                <label for="priority_filter" class="form-label me-2 mb-0 d-none d-md-inline">Prioridade:</label>
+                <select name="priority_filter" id="priority_filter" class="form-select">
+                    <option value="all" {% if current_filter_priority == 'all' %}selected{% endif %}>Todas</option>
+                    <option value="Alta" {% if current_filter_priority == 'Alta' %}selected{% endif %}>Alta</option>
+                    <option value="Média" {% if current_filter_priority == 'Média' %}selected{% endif %}>Média</option>
+                    <option value="Baixa" {% if current_filter_priority == 'Baixa' %}selected{% endif %}>Baixa</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-info mb-2">Aplicar Filtro</button>
         </form>
     </div>
 
@@ -27,15 +53,43 @@
     {% if tasks %}
         <ul class="list-group">
             {% for task in tasks %}
-                <li class="list-group-item d-flex justify-content-between align-items-center mb-2 shadow-sm">
-                    <span class="flex-grow-1 me-3">{{ task.description }}</span>
-                    <div class="d-flex align-items-center">
-                        <form action="{{ url_for('update_task', task_id=task.id) }}" method="POST" class="d-flex me-2">
-                            <input type="text" name="description" value="{{ task.description }}" class="form-control me-2" required>
-                            <button type="submit" class="btn btn-warning btn-sm">ATUALIZAR</button>
+                <li class="list-group-item d-flex justify-content-between align-items-center mb-2 shadow-sm
+                    {% if task.completed %}list-group-item-success{% endif %}">
+                    
+                    <div class="d-flex align-items-center flex-grow-1 me-3">
+                        <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" class="me-3">
+                            <input type="checkbox" name="completed" onchange="this.form.submit()"
+                                   {% if task.completed %}checked{% endif %} class="form-check-input">
                         </form>
-                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST">
-                            <button type="submit" class="btn btn-danger btn-sm">EXCLUIR</button>
+                        
+                        <span class="flex-grow-1 {% if task.completed %}text-decoration-line-through text-muted{% endif %}">
+                            {{ task.description }}
+                            <span class="badge 
+                                {% if task.priority == 'Alta' %}bg-danger
+                                {% elif task.priority == 'Média' %}bg-warning text-dark
+                                {% else %}bg-info{% endif %}
+                                ms-2">
+                                Prioridade: {{ task.priority }}
+                            </span>
+                        </span>
+                        
+                        <br><small class="text-muted ms-3">Criado em: {{ task.created_at | localdatetime }}</small>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2"> 
+                        {# Adicionado d-block para garantir que width seja aplicado consistentemente #}
+                        <button type="button" class="btn btn-warning btn-sm d-block" data-bs-toggle="modal" data-bs-target="#editTaskModal"
+                                data-task-id="{{ task.id }}"
+                                data-task-description="{{ task.description }}"
+                                data-task-priority="{{ task.priority }}"
+                                style="width: 88px;"> {# Ligeiramente aumentado para cobrir qualquer diferença #}
+                            EDITAR
+                        </button>
+                        {# Adicionado d-block e as classes de margin/padding/border zeradas para o form #}
+                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" class="m-0 p-0 border-0 d-block">
+                            <button type="submit" class="btn btn-danger btn-sm" style="width: 88px;"> {# Mesma largura do EDITAR #}
+                                EXCLUIR
+                            </button>
                         </form>
                     </div>
                 </li>
@@ -44,5 +98,92 @@
     {% else %}
         <p class="text-center">Nenhuma tarefa encontrada. Comece adicionando uma!</p>
     {% endif %}
+
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not tasks_pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('index', page=tasks_pagination.prev_num, 
+                    search_query=current_search_query, 
+                    status_filter=current_filter_status, 
+                    priority_filter=current_filter_priority) }}">Anterior</a>
+            </li>
+
+            {% for page_num in tasks_pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                {% if page_num %}
+                    {% if tasks_pagination.page == page_num %}
+                        <li class="page-item active" aria-current="page">
+                            <a class="page-link" href="#">{{ page_num }} <span class="sr-only">(current)</span></a>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('index', page=page_num, 
+                                search_query=current_search_query, 
+                                status_filter=current_filter_status, 
+                                priority_filter=current_filter_priority) }}">{{ page_num }}</a>
+                        </li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not tasks_pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('index', page=tasks_pagination.next_num, 
+                    search_query=current_search_query, 
+                    status_filter=current_filter_status, 
+                    priority_filter=current_filter_priority) }}">Próxima</a>
+            </li>
+        </ul>
+    </nav>
+
 </div>
+
+<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTaskModalLabel">Editar Tarefa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editTaskForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="taskDescription" class="form-label">Descrição da Tarefa</label>
+                        <input type="text" class="form-control" id="taskDescription" name="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskPriority" class="form-label">Prioridade</label>
+                        <select class="form-select" id="taskPriority" name="priority">
+                            <option value="Alta">Alta</option>
+                            <option value="Média">Média</option>
+                            <option value="Baixa">Baixa</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Mudanças</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    var editTaskModal = document.getElementById('editTaskModal');
+    editTaskModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var taskId = button.getAttribute('data-task-id');
+        var taskDescription = button.getAttribute('data-task-description');
+        var taskPriority = button.getAttribute('data-task-priority');
+        
+        var modalForm = editTaskModal.querySelector('#editTaskForm');
+        var modalDescriptionInput = editTaskModal.querySelector('#taskDescription');
+        var modalPrioritySelect = editTaskModal.querySelector('#taskPriority');
+        
+        modalDescriptionInput.value = taskDescription;
+        modalPrioritySelect.value = taskPriority;
+        modalForm.action = "{{ url_for('update_task', task_id=0) }}".replace('0', taskId);
+    });
+</script>
 {% endblock %}

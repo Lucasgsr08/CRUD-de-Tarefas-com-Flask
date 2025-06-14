@@ -1,105 +1,77 @@
-# Gerenciador de Tarefas com Autenticação de Usuários (Flask)
+# Projeto de Gerenciamento de Tarefas (CRUD)
 
-Este é um aplicativo web completo para gerenciamento de tarefas (CRUD - Create, Read, Update, Delete) com funcionalidades de autenticação de usuários. Desenvolvido com o framework Flask em Python, ele permite que usuários se registrem, façam login e gerenciem suas próprias tarefas de forma segura.
+Este projeto é uma aplicação web simples para gerenciamento de tarefas (CRUD - Create, Read, Update, Delete) desenvolvida com Flask e SQLAlchemy. Ele permite aos usuários adicionar, visualizar, editar e excluir tarefas, além de oferecer funcionalidades de busca e filtragem.
 
-## Funcionalidades Principais
+## Alterações Recentes na Interface (UI/UX)
 
-* **Autenticação de Usuários:**
-    * **Registro de Conta:** Novos usuários podem criar suas contas com nome de usuário, e-mail e senha.
-    * **Login Seguro:** Usuários registrados podem fazer login para acessar suas funcionalidades.
-    * **Logout:** Funcionalidade para desconectar o usuário da sessão.
-    * **Gerenciamento de Sessão:** Mantém o estado de login do usuário, protegendo rotas que exigem autenticação.
+Foram implementadas melhorias significativas na interface do usuário para otimizar a experiência e a usabilidade:
 
-* **CRUD de Tarefas:**
-    * **Adicionar Tarefas:** Crie novas tarefas com uma descrição.
-    * **Listar Tarefas:** Visualize todas as tarefas existentes.
-    * **Atualizar Tarefas:** Edite a descrição de uma tarefa existente.
-    * **Excluir Tarefas:** Remova tarefas da lista.
+* **Visibilidade das Tarefas Concluídas:** Corrigido o problema onde o texto das tarefas concluídas ficava invisível. Agora, a descrição das tarefas prontas está claramente visível.
+* **Edição de Tarefas via Modal:** A funcionalidade de edição de tarefas foi aprimorada. Em vez de campos de edição inline, agora utilizamos um modal (janela pop-up) para editar a descrição e a prioridade da tarefa, proporcionando uma interface mais limpa e intuitiva.
+* **Alinhamento e Simetria dos Botões de Ação:** Os botões "EDITAR" e "EXCLUIR" na lista de tarefas foram alinhados para ficarem lado a lado, com o mesmo tamanho e sem bordas indesejadas, conferindo um aspecto mais simétrico e profissional à interface.
 
-* **Recursos Adicionais:**
-    * **Mensagens de Feedback:** Notificações na tela (flash messages) para ações de sucesso, erros ou informações importantes (ex: "Tarefa criada com sucesso!", "Login inválido.").
-    * **Layout Responsivo:** Utilização do Bootstrap para uma interface de usuário moderna e adaptável.
+## Como Executar o Projeto
 
-## Tecnologias Utilizadas
-
-* **Backend:**
-    * Python 3.x
-    * **Flask:** Micro-framework web.
-    * **Flask-SQLAlchemy:** Extensão para integrar SQLAlchemy (ORM) com Flask, facilitando a interação com o banco de dados.
-    * **Flask-WTF & WTForms:** Para criar e validar formulários web de forma segura (incluindo proteção CSRF).
-    * **Werkzeug.security:** Para hashing e verificação segura de senhas (criptografia bcrypt).
-    * **email_validator:** Para validação de formato de e-mail nos formulários.
-
-* **Banco de Dados:**
-    * **SQLite:** Banco de dados leve e baseado em arquivo (`site.db`), ideal para desenvolvimento e pequenas aplicações.
-
-* **Frontend:**
-    * **HTML5:** Estrutura das páginas web.
-    * **CSS:** Estilização personalizada.
-    * **Bootstrap 5:** Framework CSS para componentes e responsividade da interface.
-
-## Como Rodar o Projeto Localmente
-
-Siga estes passos para configurar e executar o aplicativo em sua máquina.
-
-1.  **Clone o Repositório:**
+1.  **Clone o repositório:**
     ```bash
-    git clone [LINK_DO_SEU_REPOSITORIO_AQUI]
-    cd [NOME_DA_SUA_PASTA_DO_PROJETO]
+    git clone [SEU_LINK_DO_REPOSITORIO]
+    cd [NOME_DA_PASTA_DO_PROJETO]
     ```
-
-2.  **Crie e Ative um Ambiente Virtual:**
-    É altamente recomendado usar um ambiente virtual para isolar as dependências do projeto.
+2.  **Crie e ative um ambiente virtual (opcional, mas recomendado):**
     ```bash
     python -m venv venv
+    source venv/bin/activate  # No Linux/macOS
+    # ou
+    venv\Scripts\activate     # No Windows
     ```
-    * **Windows (Command Prompt):**
-        ```bash
-        .\venv\Scripts\activate
-        ```
-    * **Windows (PowerShell):**
-        ```bash
-        .\venv\Scripts\Activate.ps1
-        ```
-    * **Linux/macOS (Bash/Zsh):**
-        ```bash
-        source venv/bin/activate
-        ```
-
-3.  **Instale as Dependências:**
-    Com o ambiente virtual ativado, instale todas as bibliotecas necessárias:
+3.  **Instale as dependências:**
     ```bash
-    pip install Flask Flask-SQLAlchemy Flask-WTF Werkzeug email_validator
+    pip install -r requirements.txt
     ```
-    *(Opcional: Você pode gerar um `requirements.txt` com `pip freeze > requirements.txt` para futuras instalações mais fáceis usando `pip install -r requirements.txt`).*
-
-4.  **Execute o Aplicativo:**
+    (Certifique-se de ter um arquivo `requirements.txt` com `Flask`, `SQLAlchemy`, etc.)
+4.  **Execute a aplicação:**
     ```bash
     python app.py
     ```
+    O aplicativo estará disponível em `http://127.0.0.1:5153/`.
 
-5.  **Acesse no Navegador:**
-    Abra seu navegador e acesse: `http://127.0.0.1:5153/`
+## Funcionalidades Atuais
 
-### Observação Importante sobre o Banco de Dados
+* **Criar Tarefa:** Adicionar novas tarefas com descrição e prioridade.
+* **Listar Tarefas:** Visualizar todas as tarefas existentes.
+* **Editar Tarefa:** Atualizar a descrição e/ou prioridade de uma tarefa através de um modal de edição.
+* **Excluir Tarefa:** Remover tarefas da lista.
+* **Marcar como Concluída:** Alternar o status de uma tarefa entre pendente e concluída.
+* **Filtragem de Tarefas:** Filtrar tarefas por status (todas, pendentes, concluídas) e prioridade (Alta, Média, Baixa).
+* **Busca de Tarefas:** Buscar tarefas por palavras-chave na descrição.
+* **Paginação:** Navegar entre múltiplas páginas de tarefas para melhor gerenciamento.
 
-* Este projeto utiliza SQLite (`site.db`).
-* Se você adicionar ou remover colunas em seus modelos (`User` ou `Task` no `app.py`), o banco de dados existente (`site.db`) **não será atualizado automaticamente** pelo Flask-SQLAlchemy. Para que as mudanças no esquema do banco de dados entrem em vigor:
-    1.  Pare o servidor Flask (pressione `Ctrl+C` no terminal).
-    2.  **Delete o arquivo `site.db`** (e qualquer arquivo `site.db-journal` se ele existir na raiz do projeto).
-    3.  Execute `python app.py` novamente. O `db.create_all()` irá recriar o banco com o esquema atualizado, mas **você perderá todos os dados existentes**.
+## Próximas Funcionalidades (Sugestões para Aprimoramento)
 
-## Melhorias Futuras Possíveis
+Aqui estão algumas ideias para expandir e melhorar este projeto CRUD:
 
-* **Associação de Tarefas a Usuários:** Permitir que cada usuário veja e gerencie apenas suas próprias tarefas.
-* **Status da Tarefa:** Adicionar um campo para marcar tarefas como "Concluída" e permitir filtrar por status.
-* **Data de Criação e Prazo:** Adicionar campos para datas de criação e prazos para as tarefas.
-* **Prioridade da Tarefa:** Campo para definir a prioridade (ex: Alta, Média, Baixa).
-* **Barra de Busca e Filtros:** Implementar funcionalidades de busca e filtragem de tarefas na interface.
-* **Paginação:** Para lidar com um grande volume de tarefas.
-* **Perfis de Usuário:** Uma página para o usuário visualizar e talvez editar suas informações de perfil.
-* **Testes Automatizados:** Escrever testes de unidade e integração para garantir a funcionalidade.
+* **Autenticação e Autorização de Usuários:**
+    * **Registro de Usuários:** Permitir que novos usuários se cadastrem.
+    * **Login/Logout:** Funcionalidades de login e logout para gerenciar sessões de usuários.
+    * **Tarefas por Usuário:** Associar tarefas a usuários específicos, para que cada usuário veja apenas suas próprias tarefas.
+* **Datas de Vencimento:**
+    * Adicionar um campo para `data de vencimento` para cada tarefa.
+    * Permitir filtrar e ordenar tarefas por data de vencimento.
+    * Notificações visuais para tarefas próximas do vencimento ou atrasadas.
+* **Categorias/Tags para Tarefas:**
+    * Permitir que os usuários atribuam categorias (ex: Trabalho, Pessoal, Estudos) ou tags a tarefas.
+    * Funcionalidade de filtragem e busca por categorias/tags.
+* **Ordenação de Tarefas:**
+    * Opções de ordenação para a lista de tarefas (por prioridade, data de criação, data de vencimento, status).
+* **Confirmação de Exclusão:**
+    * Adicionar um pop-up de confirmação antes de excluir uma tarefa para evitar exclusões acidentais.
+* **Validação de Formulários Aprimorada:**
+    * Validação mais robusta no lado do cliente (JavaScript) e no lado do servidor para os campos dos formulários.
+* **Melhorias na Interface do Usuário:**
+    * **Drag-and-Drop:** Arrastar e soltar tarefas para reordená-las ou mudar de status.
+    * **Modo Escuro:** Opção para alternar entre temas claro e escuro.
+    * **Animações e Transições:** Adicionar pequenas animações para uma experiência mais fluida.
+* **Recursos de Colaboração (Futuro):**
+    * Permitir compartilhar tarefas ou listas de tarefas com outros usuários.
 
-## Autor
-
-* [Lucas Gabriel]
+Este `README.md` será um documento vivo, atualizado à medida que o projeto evolui.
