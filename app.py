@@ -1,51 +1,33 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField # Importe SelectField
-from wtforms.validators import DataRequired, InputRequired, Email, EqualTo, Length, ValidationError
+from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
-import os
-from datetime import datetime
-import pytz # Para fusos horários
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_migrate import Migrate # Manter se você decidir usar Flask-Migrate
 
+# Configuração do aplicativo Flask
 app = Flask(__name__)
-
-# --- Configurações do Aplicativo ---
-app.config['SECRET_KEY'] = os.urandom(24).hex()
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'sua_chave_secreta_aqui' # Mude para uma chave secreta forte e única
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db) # Manter se você decidir usar Flask-Migrate
 
-# --------------------------------------------------------------------------------------------------
-# FUSO HORÁRIO E FILTRO JINJA PERSONALIZADO
-# --------------------------------------------------------------------------------------------------
+# Configuração do Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-# Definindo o fuso horário de Brasília/São Paulo
-BRAZIL_TIMEZONE = pytz.timezone('America/Sao_Paulo')
-
-# Filtro Jinja para converter a data/hora de UTC para o fuso horário especificado
-@app.template_filter('localdatetime')
-def format_local_datetime(utc_dt):
-    if utc_dt is None:
-        return ""
-    local_dt = utc_dt.replace(tzinfo=pytz.utc).astimezone(BRAZIL_TIMEZONE)
-    return local_dt.strftime('%d/%m/%Y às %H:%M:%S')
-
-# --------------------------------------------------------------------------------------------------
-# MODELOS DO BANCO DE DADOS
-# --------------------------------------------------------------------------------------------------
+# --- Modelos do Banco de Dados ---
 
 # Modelo de Usuário
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(20), unique=True, nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-
-    def __repr__(self):
-        return f"User('{self.username}', '{self.email}')"
+    password_hash = db.Column(db.String(128))
+    tasks = db.relationship('Task', backref='author', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -53,231 +35,301 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# Modelo de Tarefa
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+# Função para carregar o usuário pelo ID (necessário para o Flask-Login)
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Modelo de Tarefa (MODIFICADO para incluir category)
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    description = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    completed = db.Column(db.Boolean, nullable=False, default=False)
-    # NOVO CAMPO: priority (Alta, Média, Baixa)
-    priority = db.Column(db.String(10), nullable=False, default='Média') # Default para 'Média'
+    description = db.Column(db.String(200), nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    priority = db.Column(db.String(50), default='Média') # 'Baixa', 'Média', 'Alta'
+    due_date = db.Column(db.Date, nullable=True)
+    category = db.Column(db.String(100), nullable=True) # NOVO: Campo para categoria
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def __repr__(self):
-        return f"Task('{self.description}', Completed: {self.completed}, Priority: {self.priority})"
+        return f'<Task {self.id}: {self.description}>'
 
-# --------------------------------------------------------------------------------------------------
-# FORMULÁRIOS WTFORMS
-# --------------------------------------------------------------------------------------------------
+# Criação do banco de dados (se não existir) - REMOVA/COMENTE SE ESTIVER USANDO FLASK-MIGRATE
+# with app.app_context():
+#     db.create_all()
 
-# Formulário de Registro de Usuário (mantido igual)
-class RegisterForm(FlaskForm):
-    username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=2, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Senha', validators=[DataRequired(), InputRequired(), EqualTo('confirm', message='As senhas devem ser iguais.')])
-    confirm = PasswordField('Confirme a Senha', validators=[DataRequired()])
-    submit = SubmitField('Registrar')
+# --- Rotas da Aplicação ---
 
-    def validate_username(self, username):
-        user = User.query.filter_by(username=username.data).first()
-        if user:
-            raise ValidationError('Este nome de usuário já está em uso.')
+# Rota de Registro
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
 
-    def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
-        if user:
-            raise ValidationError('Este email já está registrado.')
+        if not username or not email or not password or not confirm_password:
+            flash('Todos os campos são obrigatórios.', 'danger')
+            return render_template('register.html')
 
-# Formulário de Login de Usuário (mantido igual)
-class LoginForm(FlaskForm):
-    username = StringField('Nome de Usuário', validators=[DataRequired()])
-    password = PasswordField('Senha', validators=[DataRequired()])
-    submit = SubmitField('Entrar')
+        if password != confirm_password:
+            flash('As senhas não coincidem.', 'danger')
+            return render_template('register.html')
+        
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash('Nome de usuário já existe. Escolha outro.', 'danger')
+            return render_template('register.html')
 
-# --------------------------------------------------------------------------------------------------
-# DECORADORES PERSONALIZADOS
-# --------------------------------------------------------------------------------------------------
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            flash('Este email já está registrado. Use outro.', 'danger')
+            return render_template('register.html')
 
-# Decorador para exigir login (mantido igual)
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Por favor, faça login para acessar esta página.', 'error')
-            return redirect(url_for('login', next=request.url))
-        return f(*args, **kwargs)
-    return decorated_function
+        new_user = User(username=username, email=email)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Registro realizado com sucesso! Faça login para continuar.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
-# --------------------------------------------------------------------------------------------------
-# ROTAS DA APLICAÇÃO
-# --------------------------------------------------------------------------------------------------
+# Rota de Login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user)
+            flash('Login realizado com sucesso!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Nome de usuário ou senha inválidos.', 'danger')
+    return render_template('login.html')
 
-# Rota da página inicial - ONDE AS TAREFAS SÃO EXIBIDAS, FILTRADAS E PAGINADAS
-@app.route('/')
+# Rota de Logout
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Você foi desconectado.', 'info')
+    return redirect(url_for('login'))
+
+# Rota principal (MODIFICADA para filtros de categoria)
+@app.route('/', methods=['GET'])
+@login_required
 def index():
-    # Parâmetros de Filtro e Busca
+    page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search_query', '')
     status_filter = request.args.get('status_filter', 'all')
     priority_filter = request.args.get('priority_filter', 'all')
-    page = request.args.get('page', 1, type=int) # Página atual para paginação
-    per_page = 5 # Número de itens por página (ajuste conforme necessário)
+    due_date_filter = request.args.get('due_date_filter', 'all')
+    category_filter = request.args.get('category_filter', 'all') # NOVO: Filtro de categoria
+    sort_by = request.args.get('sort_by', 'created_at')
+    order = request.args.get('order', 'desc')
 
-    # Inicia a consulta
-    query = Task.query
+    tasks_query = Task.query.filter_by(user_id=current_user.id)
 
-    # Aplica filtro de status
-    if status_filter == 'completed':
-        query = query.filter_by(completed=True)
-    elif status_filter == 'pending':
-        query = query.filter_by(completed=False)
-
-    # Aplica filtro de prioridade
-    if priority_filter != 'all':
-        query = query.filter_by(priority=priority_filter)
-
-    # Aplica busca textual (case-insensitive)
     if search_query:
-        query = query.filter(Task.description.ilike(f'%{search_query}%'))
+        tasks_query = tasks_query.filter(Task.description.contains(search_query))
 
-    # Ordena as tarefas
-    # Ordem de prioridade (Alta, Média, Baixa) e depois por data de criação
-    if priority_filter == 'all': # Só ordena por prioridade se não estiver filtrando uma prioridade específica
-        # Usando a lógica de ordem para strings
-        query = query.order_by(
-            db.case(
-                (Task.priority == 'Alta', 1),
-                (Task.priority == 'Média', 2),
-                (Task.priority == 'Baixa', 3),
-                else_=4 # Para qualquer outra prioridade inesperada
-            ),
-            Task.created_at.desc() # Depois ordena pela data de criação
+    if status_filter == 'pending':
+        tasks_query = tasks_query.filter_by(completed=False)
+    elif status_filter == 'completed':
+        tasks_query = tasks_query.filter_by(completed=True)
+
+    if priority_filter != 'all':
+        tasks_query = tasks_query.filter_by(priority=priority_filter)
+
+    # Lógica do Filtro por Data de Vencimento
+    today = date.today()
+    if due_date_filter == 'today':
+        tasks_query = tasks_query.filter_by(due_date=today)
+    elif due_date_filter == 'upcoming':
+        # Próximos 7 dias (incluindo hoje, se não estiver atrasada e não concluída)
+        tasks_query = tasks_query.filter(
+            Task.due_date >= today,
+            Task.due_date <= (today + timedelta(days=7)),
+            Task.completed == False
         )
-    else:
-        query = query.order_by(Task.created_at.desc()) # Se já está filtrando, só ordena por data
+    elif due_date_filter == 'overdue':
+        tasks_query = tasks_query.filter(
+            Task.due_date < today,
+            Task.completed == False
+        )
+    
+    # NOVO: Lógica do Filtro por Categoria
+    if category_filter != 'all':
+        tasks_query = tasks_query.filter(db.func.lower(Task.category) == db.func.lower(category_filter)) # Busca insensível a maiúsculas/minúsculas
+    elif category_filter == 'none': # Para filtrar tarefas sem categoria
+        tasks_query = tasks_query.filter(Task.category.is_(None))
 
-    # Aplica paginação
-    tasks_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-    tasks = tasks_pagination.items # Obtém as tarefas da página atual
 
-    return render_template('index.html',
-                           tasks=tasks,
-                           tasks_pagination=tasks_pagination, # Passa o objeto de paginação para o template
+    # Lógica de Ordenação
+    if sort_by == 'created_at':
+        if order == 'asc':
+            tasks_query = tasks_query.order_by(Task.created_at.asc())
+        else:
+            tasks_query = tasks_query.order_by(Task.created_at.desc())
+    elif sort_by == 'due_date':
+        if order == 'asc':
+            tasks_query = tasks_query.order_by(Task.due_date.asc().nulls_last()) 
+        else:
+            tasks_query = tasks_query.order_by(Task.due_date.desc().nulls_last())
+    elif sort_by == 'priority':
+        priority_order = {'Alta': 3, 'Média': 2, 'Baixa': 1}
+        if order == 'asc':
+             tasks_query = tasks_query.order_by(db.case(
+                {p: value for p, value in priority_order.items()},
+                value=Task.priority).asc())
+        else:
+            tasks_query = tasks_query.order_by(db.case(
+                {p: value for p, value in priority_order.items()},
+                value=Task.priority).desc())
+    elif sort_by == 'status':
+        if order == 'asc':
+            tasks_query = tasks_query.order_by(Task.completed.asc())
+        else:
+            tasks_query = tasks_query.order_by(Task.completed.desc())
+
+
+    tasks_pagination = tasks_query.paginate(
+        page=page, per_page=5, error_out=False
+    )
+    tasks = tasks_pagination.items
+
+    # Obter todas as categorias únicas para o filtro
+    # Exclui categorias nulas e transforma em lista de strings únicas
+    all_categories = db.session.query(Task.category).filter(
+        Task.user_id == current_user.id, 
+        Task.category.isnot(None)
+    ).distinct().order_by(Task.category).all()
+    all_categories = [c[0] for c in all_categories] # Extrai a string da tupla
+
+    return render_template('index.html', 
+                           tasks=tasks, 
+                           tasks_pagination=tasks_pagination,
+                           current_search_query=search_query,
                            current_filter_status=status_filter,
                            current_filter_priority=priority_filter,
-                           current_search_query=search_query)
+                           current_due_date_filter=due_date_filter,
+                           current_category_filter=category_filter, # NOVO: Passar para o template
+                           current_sort_by=sort_by,
+                           current_order=order,
+                           today=today,
+                           all_categories=all_categories # NOVO: Passar categorias para o template
+                        )
 
-
-# Rota para criar uma nova tarefa
-@app.route('/create_task', methods=['POST'])
+# Rota para criar tarefa (MODIFICADA para incluir category)
+@app.route('/create', methods=['POST'])
 @login_required
 def create_task():
-    description = request.form.get('description')
-    priority = request.form.get('priority', 'Média') # Pega a prioridade do formulário, default Média
+    description = request.form['description']
+    priority = request.form['priority']
+    due_date_str = request.form['due_date']
+    category = request.form.get('category') # NOVO: Captura a categoria (pode ser None)
     
-    if not description:
-        flash('A descrição da tarefa não pode estar vazia.', 'error')
-        return redirect(url_for('index'))
+    due_date = None
+    if due_date_str:
+        try:
+            due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de data de vencimento inválido.', 'danger')
+            return redirect(url_for('index'))
 
-    new_task = Task(description=description, priority=priority) # Inclui a prioridade
+    # NOVO: Limpar categoria se for string vazia
+    if category == '':
+        category = None
+
+    new_task = Task(description=description, priority=priority, due_date=due_date, category=category, user_id=current_user.id)
     db.session.add(new_task)
     db.session.commit()
     flash('Tarefa criada com sucesso!', 'success')
     return redirect(url_for('index'))
 
-# Rota para deletar uma tarefa (mantido igual)
-@app.route('/delete_task/<int:task_id>', methods=['POST'])
+# Rota para completar tarefa
+@app.route('/complete/<int:task_id>', methods=['POST'])
 @login_required
-def delete_task(task_id):
+def complete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    db.session.delete(task)
+    if task.user_id != current_user.id:
+        flash('Você não tem permissão para modificar esta tarefa.', 'danger')
+        return redirect(url_for('index'))
+    task.completed = not task.completed
     db.session.commit()
-    flash('Tarefa excluída com sucesso!', 'info')
+    flash('Status da tarefa atualizado!', 'success')
     return redirect(url_for('index'))
 
-# Rota para atualizar uma tarefa
-@app.route('/update_task/<int:task_id>', methods=['POST'])
+# Rota para atualizar tarefa (MODIFICADA para incluir category)
+@app.route('/update/<int:task_id>', methods=['POST'])
 @login_required
 def update_task(task_id):
     task = Task.query.get_or_404(task_id)
-    new_description = request.form.get('description')
-    new_priority = request.form.get('priority') # Pega a nova prioridade do formulário
-
-    if not new_description:
-        flash('A descrição da tarefa não pode estar vazia.', 'error')
+    if task.user_id != current_user.id:
+        flash('Você não tem permissão para modificar esta tarefa.', 'danger')
         return redirect(url_for('index'))
     
-    task.description = new_description
-    if new_priority in ['Alta', 'Média', 'Baixa']: # Valida a prioridade recebida
-        task.priority = new_priority
-        
+    task.description = request.form['description']
+    task.priority = request.form['priority']
+    due_date_str = request.form['due_date']
+    category = request.form.get('category') # NOVO: Captura a categoria
+
+    if due_date_str:
+        try:
+            task.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Formato de data de vencimento inválido.', 'danger')
+            return redirect(url_for('index'))
+    else:
+        task.due_date = None
+    
+    # NOVO: Limpar categoria se for string vazia
+    if category == '':
+        task.category = None
+    else:
+        task.category = category
+
     db.session.commit()
     flash('Tarefa atualizada com sucesso!', 'success')
     return redirect(url_for('index'))
 
-# Rota para alternar o status de conclusão da tarefa (mantido igual)
-@app.route('/complete_task/<int:task_id>', methods=['POST'])
+# Rota para deletar tarefa
+@app.route('/delete/<int:task_id>', methods=['POST'])
 @login_required
-def complete_task(task_id):
+def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    task.completed = not task.completed
+    if task.user_id != current_user.id:
+        flash('Você não tem permissão para deletar esta tarefa.', 'danger')
+        return redirect(url_for('index'))
+    db.session.delete(task)
     db.session.commit()
-    if task.completed:
-        flash('Tarefa marcada como concluída!', 'success')
-    else:
-        flash('Tarefa marcada como pendente novamente.', 'info')
+    flash('Tarefa deletada com sucesso!', 'success')
     return redirect(url_for('index'))
 
-# Rota de Registro de Usuário (mantido igual)
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if 'user_id' in session:
-        flash('Você já está logado.', 'info')
-        return redirect(url_for('index'))
+# Filtro Jinja para formatar data e hora
+@app.template_filter('localdatetime')
+def localdatetime_filter(dt):
+    if dt is None:
+        return 'N/A'
+    return dt.strftime('%d/%m/%Y às %H:%M:%S')
 
-    form = RegisterForm()
-    if form.validate_on_submit():
-        hashed_password = generate_password_hash(form.password.data)
-        user = User(username=form.username.data, email=form.email.data, password_hash=hashed_password)
-        db.session.add(user)
-        db.session.commit()
-        flash('Sua conta foi criada com sucesso! Agora você pode fazer login.', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html', form=form)
+@app.template_filter('localdate')
+def localdate_filter(d):
+    if d is None:
+        return 'N/A'
+    return d.strftime('%d/%m/%Y')
 
-# Rota de Login de Usuário (mantido igual)
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if 'user_id' in session:
-        flash('Você já está logado.', 'info')
-        return redirect(url_for('index'))
-
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(form.password.data):
-            session['user_id'] = user.id
-            flash('Login bem-sucedido!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
-        else:
-            flash('Login inválido. Verifique seu nome de usuário e senha.', 'error')
-    return render_template('login.html', form=form)
-
-# Rota de Logout de Usuário (mantido igual)
-@app.route('/logout')
-@login_required
-def logout():
-    session.pop('user_id', None)
-    flash('Você foi desconectado.', 'info')
-    return redirect(url_for('login'))
-
-# --------------------------------------------------------------------------------------------------
-# INICIALIZAÇÃO DA APLICAÇÃO
-# --------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    with app.app_context():
-        # ATENÇÃO: Ao adicionar a coluna 'priority' ao modelo Task,
-        # VOCÊ PRECISA DELETAR o arquivo 'site.db'
-        # e reiniciar o servidor para que o banco de dados seja recriado com a nova coluna.
-        db.create_all()
-    app.run(debug=True, port=5153)
+    app.run(debug=True)

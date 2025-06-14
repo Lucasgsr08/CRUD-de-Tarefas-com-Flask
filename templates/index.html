@@ -1,189 +1,306 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="container">
-    <h1 class="my-4 text-center">Minhas Tarefas</h1>
+<h1 class="text-center my-4">Minhas Tarefas</h1>
 
-    <div class="card p-3 mb-4 shadow-sm">
-        <h2 class="card-title h4">Adicionar Nova Tarefa</h2>
-        <form action="{{ url_for('create_task') }}" method="POST" class="d-flex flex-column flex-md-row align-items-stretch">
-            <input type="text" name="description" class="form-control me-md-2 mb-2 mb-md-0 flex-grow-1" placeholder="Nova tarefa..." required>
-            
-            <select name="priority" class="form-select me-md-2 mb-2 mb-md-0">
-                <option value="Média" selected>Média</option>
-                <option value="Alta">Alta</option>
-                <option value="Baixa">Baixa</option>
-            </select>
-            
-            <button type="submit" class="btn btn-primary">Criar Tarefa</button>
-        </form>
-    </div>
-
-    <div class="card p-3 mb-4 shadow-sm">
-        <h2 class="card-title h4">Filtrar e Buscar Tarefas</h2>
-        <form action="{{ url_for('index') }}" method="GET" class="d-flex flex-wrap align-items-center">
-            <div class="me-2 mb-2 flex-grow-1">
-                <input type="text" name="search_query" class="form-control" placeholder="Buscar por descrição..." value="{{ current_search_query if current_search_query else '' }}">
-            </div>
-
-            <div class="me-2 mb-2">
-                <label for="status_filter" class="form-label me-2 mb-0 d-none d-md-inline">Status:</label>
-                <select name="status_filter" id="status_filter" class="form-select">
-                    <option value="all" {% if current_filter_status == 'all' %}selected{% endif %}>Todas</option>
-                    <option value="pending" {% if current_filter_status == 'pending' %}selected{% endif %}>Pendentes</option>
-                    <option value="completed" {% if current_filter_status == 'completed' %}selected{% endif %}>Concluídas</option>
-                </select>
-            </div>
-
-            <div class="me-2 mb-2">
-                <label for="priority_filter" class="form-label me-2 mb-0 d-none d-md-inline">Prioridade:</label>
-                <select name="priority_filter" id="priority_filter" class="form-select">
-                    <option value="all" {% if current_filter_priority == 'all' %}selected{% endif %}>Todas</option>
-                    <option value="Alta" {% if current_filter_priority == 'Alta' %}selected{% endif %}>Alta</option>
-                    <option value="Média" {% if current_filter_priority == 'Média' %}selected{% endif %}>Média</option>
-                    <option value="Baixa" {% if current_filter_priority == 'Baixa' %}selected{% endif %}>Baixa</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn btn-info mb-2">Aplicar Filtro</button>
-        </form>
-    </div>
-
-    <h2 class="my-4 text-center">Lista de Tarefas</h2>
-    {% if tasks %}
-        <ul class="list-group">
-            {% for task in tasks %}
-                <li class="list-group-item d-flex justify-content-between align-items-center mb-2 shadow-sm
-                    {% if task.completed %}list-group-item-success{% endif %}">
-                    
-                    <div class="d-flex align-items-center flex-grow-1 me-3">
-                        <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" class="me-3">
-                            <input type="checkbox" name="completed" onchange="this.form.submit()"
-                                   {% if task.completed %}checked{% endif %} class="form-check-input">
-                        </form>
-                        
-                        <span class="flex-grow-1 {% if task.completed %}text-decoration-line-through text-muted{% endif %}">
-                            {{ task.description }}
-                            <span class="badge 
-                                {% if task.priority == 'Alta' %}bg-danger
-                                {% elif task.priority == 'Média' %}bg-warning text-dark
-                                {% else %}bg-info{% endif %}
-                                ms-2">
-                                Prioridade: {{ task.priority }}
-                            </span>
-                        </span>
-                        
-                        <br><small class="text-muted ms-3">Criado em: {{ task.created_at | localdatetime }}</small>
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Adicionar Nova Tarefa</h5>
+                <form action="{{ url_for('create_task') }}" method="POST" class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label for="description" class="form-label">Descrição da Tarefa</label>
+                        <input type="text" class="form-control" id="description" name="description" placeholder="Nova tarefa..." required>
                     </div>
-
-                    <div class="d-flex align-items-center gap-2"> 
-                        {# Adicionado d-block para garantir que width seja aplicado consistentemente #}
-                        <button type="button" class="btn btn-warning btn-sm d-block" data-bs-toggle="modal" data-bs-target="#editTaskModal"
-                                data-task-id="{{ task.id }}"
-                                data-task-description="{{ task.description }}"
-                                data-task-priority="{{ task.priority }}"
-                                style="width: 88px;"> {# Ligeiramente aumentado para cobrir qualquer diferença #}
-                            EDITAR
-                        </button>
-                        {# Adicionado d-block e as classes de margin/padding/border zeradas para o form #}
-                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" class="m-0 p-0 border-0 d-block">
-                            <button type="submit" class="btn btn-danger btn-sm" style="width: 88px;"> {# Mesma largura do EDITAR #}
-                                EXCLUIR
-                            </button>
-                        </form>
+                    <div class="col-md-2">
+                        <label for="priority" class="form-label">Prioridade</label>
+                        <select class="form-select" id="priority" name="priority">
+                            <option value="Baixa">Baixa</option>
+                            <option value="Média" selected>Média</option>
+                            <option value="Alta">Alta</option>
+                        </select>
                     </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="text-center">Nenhuma tarefa encontrada. Comece adicionando uma!</p>
-    {% endif %}
-
-    <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
-            <li class="page-item {% if not tasks_pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('index', page=tasks_pagination.prev_num, 
-                    search_query=current_search_query, 
-                    status_filter=current_filter_status, 
-                    priority_filter=current_filter_priority) }}">Anterior</a>
-            </li>
-
-            {% for page_num in tasks_pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                {% if page_num %}
-                    {% if tasks_pagination.page == page_num %}
-                        <li class="page-item active" aria-current="page">
-                            <a class="page-link" href="#">{{ page_num }} <span class="sr-only">(current)</span></a>
-                        </li>
-                    {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('index', page=page_num, 
-                                search_query=current_search_query, 
-                                status_filter=current_filter_status, 
-                                priority_filter=current_filter_priority) }}">{{ page_num }}</a>
-                        </li>
-                    {% endif %}
-                {% else %}
-                    <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-                {% endif %}
-            {% endfor %}
-
-            <li class="page-item {% if not tasks_pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('index', page=tasks_pagination.next_num, 
-                    search_query=current_search_query, 
-                    status_filter=current_filter_status, 
-                    priority_filter=current_filter_priority) }}">Próxima</a>
-            </li>
-        </ul>
-    </nav>
-
+                    <div class="col-md-3">
+                        <label for="due_date" class="form-label">Data de Vencimento</label>
+                        <input type="date" class="form-control" id="due_date" name="due_date" title="Data de Vencimento">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="category" class="form-label">Categoria</label>
+                        <input type="text" class="form-control" id="category" name="category" placeholder="Ex: Trabalho">
+                    </div>
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary">Criar Tarefa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Filtrar e Buscar Tarefas</h5>
+                <form action="{{ url_for('index') }}" method="GET" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="search_query" class="form-label">Buscar por descrição</label>
+                        <input type="text" class="form-control" id="search_query" name="search_query" placeholder="Buscar por descrição..." value="{{ current_search_query }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="status_filter" class="form-label">Status</label>
+                        <select class="form-select" id="status_filter" name="status_filter">
+                            <option value="all" {% if current_filter_status == 'all' %}selected{% endif %}>Todas</option>
+                            <option value="pending" {% if current_filter_status == 'pending' %}selected{% endif %}>Pendentes</option>
+                            <option value="completed" {% if current_filter_status == 'completed' %}selected{% endif %}>Concluídas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="priority_filter" class="form-label">Prioridade</label>
+                        <select class="form-select" id="priority_filter" name="priority_filter">
+                            <option value="all" {% if current_filter_priority == 'all' %}selected{% endif %}>Todas</option>
+                            <option value="Baixa" {% if current_filter_priority == 'Baixa' %}selected{% endif %}>Baixa</option>
+                            <option value="Média" {% if current_filter_priority == 'Média' %}selected{% endif %}>Média</option>
+                            <option value="Alta" {% if current_filter_priority == 'Alta' %}selected{% endif %}>Alta</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="due_date_filter" class="form-label">Data de Vencimento</label>
+                        <select class="form-select" id="due_date_filter" name="due_date_filter">
+                            <option value="all" {% if current_due_date_filter == 'all' %}selected{% endif %}>Todas as Datas</option>
+                            <option value="today" {% if current_due_date_filter == 'today' %}selected{% endif %}>Vence Hoje</option>
+                            <option value="upcoming" {% if current_due_date_filter == 'upcoming' %}selected{% endif %}>Próximas</option>
+                            <option value="overdue" {% if current_due_date_filter == 'overdue' %}selected{% endif %}>Atrasadas</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="category_filter" class="form-label">Categoria</label>
+                        <select class="form-select" id="category_filter" name="category_filter">
+                            <option value="all" {% if current_category_filter == 'all' %}selected{% endif %}>Todas as Categorias</option>
+                            <option value="none" {% if current_category_filter == 'none' %}selected{% endif %}>Sem Categoria</option>
+                            {% for category in all_categories %}
+                                <option value="{{ category }}" {% if current_category_filter == category %}selected{% endif %}>{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="sort_by" class="form-label">Ordenar por</label>
+                        <select class="form-select" id="sort_by" name="sort_by">
+                            <option value="created_at" {% if current_sort_by == 'created_at' %}selected{% endif %}>Data de Criação</option>
+                            <option value="due_date" {% if current_sort_by == 'due_date' %}selected{% endif %}>Data de Vencimento</option>
+                            <option value="priority" {% if current_sort_by == 'priority' %}selected{% endif %}>Prioridade</option>
+                            <option value="status" {% if current_sort_by == 'status' %}selected{% endif %}>Status</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="order" class="form-label">Ordem</label>
+                        <select class="form-select" id="order" name="order">
+                            <option value="desc" {% if current_order == 'desc' %}selected{% endif %}>Descrescente</option>
+                            <option value="asc" {% if current_order == 'asc' %}selected{% endif %}>Crescente</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-info">Aplicar Filtro</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Limpar Filtros</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="text-center my-4">Lista de Tarefas</h2>
+
+{% if tasks %}
+    {% for task in tasks %}
+    <div class="card mb-3 shadow-sm 
+        {% if not task.completed and task.due_date and task.due_date < today %}border-danger
+        {% elif not task.completed and task.due_date and (task.due_date - today).days <= 3 %}border-warning
+        {% endif %}">
+        <div class="card-body d-flex align-items-center">
+            <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" class="me-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" onchange="this.form.submit()" {% if task.completed %}checked{% endif %} id="task-{{ task.id }}">
+                    <label class="form-check-label {% if task.completed %}text-decoration-line-through text-muted{% endif %}" for="task-{{ task.id }}">
+                        {{ task.description }}
+                    </label>
+                </div>
+            </form>
+
+            <div class="ms-auto d-flex align-items-center">
+                {% if task.category %}
+                    <span class="badge bg-primary me-2">Categoria: {{ task.category }}</span>
+                {% endif %}
+
+                <span class="badge 
+                    {% if task.priority == 'Alta' %}bg-danger
+                    {% elif task.priority == 'Média' %}bg-warning text-dark
+                    {% else %}bg-success
+                    {% endif %} me-2">
+                    Prioridade: {{ task.priority }}
+                </span>
+                
+                {% if task.due_date %}
+                    <span class="badge bg-secondary me-2">Vencimento: {{ task.due_date | localdate }}</span>
+                    {% if not task.completed and task.due_date < today %}
+                        <span class="badge bg-danger me-2">ATRASADA!</span>
+                    {% elif not task.completed and (task.due_date - today).days <= 3 %}
+                        <span class="badge bg-warning text-dark me-2">Vence em Breve!</span>
+                    {% endif %}
+                {% else %}
+                    <span class="badge bg-secondary me-2">Sem Vencimento</span>
+                {% endif %}
+
+                <span class="text-muted small me-3">Criado em: {{ task.created_at | localdatetime }}</span>
+                
+                <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editModal-{{ task.id }}">
+                    EDITAR
+                </button>
+                {# MODIFICADO: Botão EXCLUIR para abrir o modal de confirmação #}
+                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal" data-task-id="{{ task.id }}">
+                    EXCLUIR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editModal-{{ task.id }}" tabindex="-1" aria-labelledby="editModalLabel-{{ task.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel-{{ task.id }}">Editar Tarefa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('update_task', task_id=task.id) }}" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editDescription-{{ task.id }}" class="form-label">Descrição</label>
+                            <input type="text" class="form-control" id="editDescription-{{ task.id }}" name="description" value="{{ task.description }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPriority-{{ task.id }}" class="form-label">Prioridade</label>
+                            <select class="form-select" id="editPriority-{{ task.id }}" name="priority">
+                                <option value="Baixa" {% if task.priority == 'Baixa' %}selected{% endif %}>Baixa</option>
+                                <option value="Média" {% if task.priority == 'Média' %}selected{% endif %}>Média</option>
+                                <option value="Alta" {% if task.priority == 'Alta' %}selected{% endif %}>Alta</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDueDate-{{ task.id }}" class="form-label">Data de Vencimento</label>
+                            <input type="date" class="form-control" id="editDueDate-{{ task.id }}" name="due_date" 
+                                value="{% if task.due_date %}{{ task.due_date.strftime('%Y-%m-%d') }}{% endif %}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCategory-{{ task.id }}" class="form-label">Categoria</label>
+                            <input type="text" class="form-control" id="editCategory-{{ task.id }}" name="category" value="{{ task.category or '' }}" placeholder="Ex: Pessoal">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {# Paginação #}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if tasks_pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('index', page=tasks_pagination.prev_num, 
+                                                search_query=current_search_query, 
+                                                status_filter=current_filter_status, 
+                                                priority_filter=current_filter_priority,
+                                                due_date_filter=current_due_date_filter,
+                                                category_filter=current_category_filter,
+                                                sort_by=current_sort_by,
+                                                order=current_order) }}">Anterior</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+            {% endif %}
+            {% for page_num in tasks_pagination.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == tasks_pagination.page %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ page_num }}</span></li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('index', page=page_num, 
+                                                    search_query=current_search_query, 
+                                                    status_filter=current_filter_status, 
+                                                    priority_filter=current_filter_priority,
+                                                    due_date_filter=current_due_date_filter,
+                                                    category_filter=current_category_filter,
+                                                    sort_by=current_sort_by,
+                                                    order=current_order) }}">{{ page_num }}</a>
+                </li>
+                {% endif %}
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+            {% endfor %}
+            {% if tasks_pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('index', page=tasks_pagination.next_num, 
+                                                search_query=current_search_query, 
+                                                status_filter=current_filter_status, 
+                                                priority_filter=current_filter_priority,
+                                                due_date_filter=current_due_date_filter,
+                                                category_filter=current_category_filter,
+                                                sort_by=current_sort_by,
+                                                order=current_order) }}">Próxima</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+{% else %}
+    <p class="text-center">Nenhuma tarefa encontrada. Comece adicionando uma!</p>
+{% endif %}
+
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editTaskModalLabel">Editar Tarefa</h5>
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmar Exclusão</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="editTaskForm" method="POST">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="taskDescription" class="form-label">Descrição da Tarefa</label>
-                        <input type="text" class="form-control" id="taskDescription" name="description" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="taskPriority" class="form-label">Prioridade</label>
-                        <select class="form-select" id="taskPriority" name="priority">
-                            <option value="Alta">Alta</option>
-                            <option value="Média">Média</option>
-                            <option value="Baixa">Baixa</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Mudanças</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                Tem certeza de que deseja excluir esta tarefa? Esta ação não pode ser desfeita.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteTaskForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    var editTaskModal = document.getElementById('editTaskModal');
-    editTaskModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var taskId = button.getAttribute('data-task-id');
-        var taskDescription = button.getAttribute('data-task-description');
-        var taskPriority = button.getAttribute('data-task-priority');
-        
-        var modalForm = editTaskModal.querySelector('#editTaskForm');
-        var modalDescriptionInput = editTaskModal.querySelector('#taskDescription');
-        var modalPrioritySelect = editTaskModal.querySelector('#taskPriority');
-        
-        modalDescriptionInput.value = taskDescription;
-        modalPrioritySelect.value = taskPriority;
-        modalForm.action = "{{ url_for('update_task', task_id=0) }}".replace('0', taskId);
+    // Script para passar o ID da tarefa para o modal de exclusão
+    document.addEventListener('DOMContentLoaded', function () {
+        var deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        deleteConfirmModal.addEventListener('show.bs.modal', function (event) {
+            // Botão que disparou o modal
+            var button = event.relatedTarget;
+            // Extrai o ID da tarefa do atributo data-task-id
+            var taskId = button.getAttribute('data-task-id');
+            // Atualiza a action do formulário de exclusão dentro do modal
+            var form = deleteConfirmModal.querySelector('#deleteTaskForm');
+            form.action = "{{ url_for('delete_task', task_id=99999) }}".replace('99999', taskId);
+        });
     });
 </script>
+
 {% endblock %}

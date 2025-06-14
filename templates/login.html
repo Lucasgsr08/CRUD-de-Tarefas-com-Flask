@@ -1,40 +1,28 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card p-4 mt-5 shadow-sm">
-            <h2 class="card-title text-center mb-4">Entrar</h2>
-            <form method="POST" action="{{ url_for('login') }}">
-                {{ form.hidden_tag() }} {# ESSENCIAL para segurança do formulário (CSRF token) #}
-
-                <div class="mb-3">
-                    {{ form.username.label(class="form-label") }}
-                    {{ form.username(class="form-control", placeholder="Digite seu nome de usuário") }}
-                    {% if form.username.errors %}
-                        <div class="text-danger">
-                            {% for error in form.username.errors %}{{ error }}{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="mb-3">
-                    {{ form.password.label(class="form-label") }}
-                    {{ form.password(class="form-control", placeholder="Digite sua senha") }}
-                    {% if form.password.errors %}
-                        <div class="text-danger">
-                            {% for error in form.password.errors %}{{ error }}{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <div class="d-grid gap-2">
-                    {{ form.submit(class="btn btn-primary") }}
-                </div>
-            </form>
-            <div class="text-center mt-3">
-                Não tem uma conta? <a href="{{ url_for('register') }}">Registre-se aqui.</a>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px;">
+        <h2 class="card-title text-center mb-4">Entrar</h2>
+        <form method="POST" action="{{ url_for('login') }}">
+            {# Removido {{ form.hidden_tag() }} por enquanto #}
+            
+            <div class="mb-3">
+                <label for="username" class="form-label">Nome de Usuário</label>
+                <input type="text" class="form-control" id="username" name="username" placeholder="Digite seu nome de usuário" required>
+                {# Removido {{ form.username.errors }} por enquanto #}
             </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Digite sua senha" required>
+                {# Removido {{ form.password.errors }} por enquanto #}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Entrar</button>
+        </form>
+        <div class="text-center mt-3">
+            Não tem uma conta? <a href="{{ url_for('register') }}">Registre-se aqui.</a>
         </div>
     </div>
 </div>
